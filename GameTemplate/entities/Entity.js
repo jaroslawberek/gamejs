@@ -1,18 +1,21 @@
 export class Entity {
     constructor(img, x, y, w, h) {
         this.img = img;         // obrazek (asset)
-        this.x = x;             // lewa krawędź
-        this.y = y;             // górna krawędź
-        this.width = w;         //szerokosć
-        this.height = h;        //wysokość
+        this.x = x;             // lewa krawędź w świecie
+        this.y = y;             // górna krawędź w świecie
+        this.width = w;         // szerokość
+        this.height = h;        // wysokość
 
-        // skrajne pozycje + środek
+        // automatyczne właściwości pomocnicze
         this.right = this.x + this.width;
         this.bottom = this.y + this.height;
-        this.center = { x: this.x + this.width / 2, y: this.y + this.height / 2 };
+        this.center = {
+            x: this.x + this.width / 2,
+            y: this.y + this.height / 2
+        };
     }
 
-    // przeliczanie granic obiektu
+    // aktualizacja granic obiektu
     recalculate() {
         this.right = this.x + this.width;
         this.bottom = this.y + this.height;
@@ -20,19 +23,29 @@ export class Entity {
         this.center.y = this.y + this.height / 2;
     }
 
-    // rysowanie – domyślne (jeśli jest obrazek)
-    draw(ctx) {
+    /**
+     * Rysowanie obiektu na canvasie.
+     * @param {CanvasRenderingContext2D} ctx - kontekst rysowania
+     * @param {object} camera - {x, y} pozycja kamery (może być pominięta)
+     */
+    draw(ctx, camera = { x: 0, y: 0 }) {
+        const drawX = Math.round(this.x - (camera.x || 0));
+        const drawY = Math.round(this.y - (camera.y || 0));
+
         if (this.img) {
-            ctx.drawImage(this.img, this.x, this.y, this.width, this.height);
+            // rysuj sprite’a / grafikę
+            ctx.drawImage(this.img, drawX, drawY, this.width, this.height);
         } else {
-            // fallback – prostokąt
+            // fallback – prostokąt (dla debugowania)
             ctx.fillStyle = "magenta";
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.fillRect(drawX, drawY, this.width, this.height);
         }
     }
 
-    // update – pusta metoda, żeby nadpisywać w klasach potomnych
-    update(deltaTime) {
-        // domyślnie nic
+    /**
+     * Pusta metoda do nadpisania w klasach potomnych (gracz, wróg itd.)
+     */
+    update(dt, context) {
+        // domyślnie nic nie robi
     }
 }

@@ -6,9 +6,9 @@ export class Enemy extends Entity {
         this.speed = 100;
     }
 
-    update(deltaTime) {
+    update(dt) {
         // proste poruszanie w dół
-        //this.y += this.speed * (deltaTime / 1000);
+        //this.y += this.speed * dt;
         this.recalculate();
     }
     colission(obj) {

@@ -5,7 +5,7 @@ export class PlayerPlatformer extends Entity {
         // this.speed = 200; // px na sekundę
         this.speed = 250; // px/s
         this.gravity = 1500; // px/s²
-        this.jumpStrength = 600; // px/s
+        this.jumpStrength = 900; // px/s
         this.onGround = false;
 
 
@@ -13,9 +13,8 @@ export class PlayerPlatformer extends Entity {
     }
 
 
-    update(deltaTime, keys, canvas) {
-        const dt = deltaTime / 1000; // sekundy
-
+    update(dt, context) {
+        const { canvas, keys, hudHeight, worldWidth, worldHeight } = context;
         // --- Sterowanie poziome ---
         this.velocity.x = 0; // reset prędkości w osi X, będzie nadana przez klawisze
         if (keys["ArrowRight"]) this.velocity.x = this.speed;   // px/s
@@ -34,22 +33,18 @@ export class PlayerPlatformer extends Entity {
         this.x += this.velocity.x * dt;
         this.y += this.velocity.y * dt;
 
-        // --- Clamp poziomy (żeby nie uciekł z ekranu) ---
+        // Clamp poziomy względem ŚWIATA
         if (this.x < 0) this.x = 0;
-        if (this.right > canvas.width) this.x = canvas.width - this.width;
+        if (this.right > worldWidth) this.x = worldWidth - this.width;
 
-        // --- Clamp pionowy (sufit) ---
-        if (this.y < 0) {
-            this.y = 0;
-            this.velocity.y = 0; // uderzenie w sufit zatrzymuje ruch w górę
-        }
-        if (this.bottom > canvas.height) {
-            this.y = canvas.height - this.height;
+        // Sufit = HUD
+        if (this.y < hudHeight) {
+            this.y = hudHeight;
             this.velocity.y = 0;
-            this.onGround = true;
         }
-        // ❌ brak clampu dolnego — Player spada w nieskończoność,
-        //    dopóki kolizja z podłogą/platformą go nie zatrzyma
+
+        // ❌ Nie rób już clampu do dołu canvasa tutaj
+        // Dół obsłużą platformy/ziemia + warunek przegranej w Game (worldHeight)
 
         this.recalculate();
     }

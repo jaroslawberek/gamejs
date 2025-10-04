@@ -5,16 +5,22 @@
     <title>Minimalny Game Loop</title>
     <style>
       canvas {
-        /*border: 1px solid black;*/
+        border: 1px solid black;
         background: #eef;
         display: block;
         margin: 20px auto;
       }
+      body {
+        background-color: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+      }
     </style>
   </head>
   <body>
-    <canvas id="gameCanvas" width="1200" height="800"></canvas>
-
-    <script src="main.js" type="module"></script>
+    <div id="gameContainer" style="text-align: center; margin-top: 20px">
+      <canvas id="gameCanvas"></canvas>
+    </div>
+    <script type="module" src="main.js"></script>
   </body>
 </html>
