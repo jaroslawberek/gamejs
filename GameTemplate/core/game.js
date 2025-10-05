@@ -141,9 +141,11 @@ export class Game {
             );
 
 
-            // Przeciwnicy (opcjonalnie)
-            g.objects.push(new Enemy(null, 900, g.worldHeight - 100, 150, 50));
-            g.objects.push(new Enemy(null, 800, 350, 50, 50, 250, 80));
+            // Przeciwnicy (opcjonalnie)rr
+            g.objects.push(new Enemy(null, 900, g.worldHeight - 100, 50, 50, 900, 200));
+            g.objects.push(new Enemy(null, 400, g.worldHeight - 400, 50, 50, 900, 200));
+            g.objects.push(new Enemy(null, 400, g.worldHeight - 370, 50, 50, 900, 300));
+            g.objects.push(new Enemy(null, 800, 350, 50, 50, 450, 500));
             // Ustaw kamerę na dole świata (widok na ziemię)
             g.camera.y = g.worldHeight - g.canvas.height;
 
