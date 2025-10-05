@@ -1,5 +1,5 @@
 export const assetsToLoad = {
-    // player: "img/player.png",
+    player: "assets/goblin.png",
     // enemy: "img/enemy.png",
     platform: "assets/platform.png"
 };

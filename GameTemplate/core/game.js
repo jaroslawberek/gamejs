@@ -117,14 +117,7 @@ export class Game {
             g.worldHeight = 1200;
 
             // Gracz startuje trochę nad ziemią
-            g.player = PlayerFactory.create(
-                g.mode,
-                null,
-                100,
-                g.worldHeight - 150,
-                50,
-                50
-            );
+            g.player = PlayerFactory.create(g.mode, assets.player, 100, g.worldHeight - 150, 64, 64);
 
             // === PLATFORMY ===
             g.objects.push(

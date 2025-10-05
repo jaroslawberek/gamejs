@@ -1,4 +1,6 @@
 import { Entity } from "./Entity.js";
+import { Animator } from "../core/Animator.js";
+
 export class PlayerPlatformer extends Entity {
     constructor(img, x, y, w, h) {
         super(img, x, y, w, h);
@@ -10,6 +12,20 @@ export class PlayerPlatformer extends Entity {
 
 
         this.velocity = { x: 0, y: 0 } //prędkość w poziomie i pionie
+        this.animator = new Animator(img, w, h);
+
+        // Dodaj animacje (przykładowe)
+        const animConfig = {
+            idle: { row: 0, frames: 1, speed: 8 },
+            walk: { row: 1, frames: 4, speed: 10 },
+            jump: { row: 1, frames: 1, speed: 4 },
+        };
+        for (const [name, cfg] of Object.entries(animConfig)) {
+            this.animator.add(name, cfg.row, cfg.frames, cfg.speed);
+        }
+        this.animator.add("idle", 0, 1, 8);   // nazwa, wiersz, klatki, fps
+        this.animator.add("walk", 1, 4, 10);
+        this.animator.add("jump", 1, 1, 6);
     }
 
 
@@ -47,8 +63,30 @@ export class PlayerPlatformer extends Entity {
         // Dół obsłużą platformy/ziemia + warunek przegranej w Game (worldHeight)
 
         this.recalculate();
+        if (!this.onGround) {
+            this.currentAnimation = "jump";
+        } else if (this.velocity.x !== 0) {
+            this.currentAnimation = "walk";
+        } else {
+            this.currentAnimation = "idle";
+        }
+
+        if (this.animator.current !== this.currentAnimation) {
+            this.animator.play(this.currentAnimation);
+        }
+        this.animator.update(dt);
+        this.animator.update(dt);
     }
 
+    draw(ctx, camera) {
+        if (this.animator && this.animator.hasSheet()) {
+            // opcjonalnie: kierunek bazujący na prędkości
+            const flip = this.velocity.x < 0;
+            this.animator.draw(ctx, this.x - camera.x, this.y - camera.y, flip);
+        } else {
+            super.draw(ctx, camera); // fallback – magenta rect
+        }
+    }
 
     colission(obj) {
         console.log(`zderzylem sie z obiektem typu: ${obj.constructor.name}`);
