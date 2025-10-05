@@ -9,32 +9,67 @@ export class PlayerPlatformer extends Entity {
         this.gravity = 1500; // px/s²
         this.jumpStrength = 900; // px/s
         this.onGround = false;
+        this.facingLeft = false; // w ktora strone ryj miał ostatnio :)
+
 
 
         this.velocity = { x: 0, y: 0 } //prędkość w poziomie i pionie
         this.animator = new Animator(img, w, h);
+        // 🔹 Dopasuj hitbox do realnej postaci (goblin nie zajmuje pełnego 64×64)
+        //this.hitbox.offsetX = 5;     // przesunięcie w prawo
+        // this.hitbox.offsetY = 11;      // przesunięcie w dół
+        this.hitbox.widthFactor = 0.4;  // hitbox to ~65% szerokości
+        this.hitbox.heightFactor = 1;  // hitbox to ~80% wysokości
 
         // Dodaj animacje (przykładowe)
         const animConfig = {
-            idle: { row: 0, frames: 1, speed: 8 },
-            walk: { row: 1, frames: 4, speed: 10 },
-            jump: { row: 1, frames: 1, speed: 4 },
+            idle: { row: 1, frames: 1, speed: 8, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11 },
+            walk: { row: 1, frames: 6, speed: 10, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11 },
+            jump: { row: 1, frames: 3, speed: 4, startIndex: 2 },
+            die: { row: 4, frames: 4, speed: 3, startIndex: 0, drawOffsetX: 0, drawOffsetY: 5, flipOffsetX: null, loop: false, hold: true },
         };
         for (const [name, cfg] of Object.entries(animConfig)) {
-            this.animator.add(name, cfg.row, cfg.frames, cfg.speed);
-        }
-        this.animator.add("idle", 0, 1, 8);   // nazwa, wiersz, klatki, fps
-        this.animator.add("walk", 1, 4, 10);
-        this.animator.add("jump", 1, 1, 6);
+            this.animator.add(name, cfg.row, cfg.frames, cfg.speed, cfg.startIndex, cfg.drawOffsetX, cfg.drawOffsetY, cfg.flipOffsetX, cfg.loop, cfg.hold);
+        } this.resolveCollision
+        this.debug = false;  // <—— możesz zmieniać na false
+        console.log(this.animator.animations);
     }
 
 
     update(dt, context) {
         const { canvas, keys, hudHeight, worldWidth, worldHeight } = context;
+        if (this.isDead) {
+            // spadanie po śmierci
+            this.velocity.y += this.gravity * dt;
+            this.y += this.velocity.y * dt;
+            // po dotknięciu ziemi — zatrzymaj
+            if (this.onGround) {
+                this.velocity.y = 0;
+            }
+            this.recalculate();
+            this.deathTimer -= dt;
+            if (this.deathTimer <= 0) {
+                context.game.lives--;
+                if (context.game.lives <= 0) {
+                    context.game.gameState = "gameover";
+                } else {
+                    context.game.reset(); // respawn
+                }
+            }
+            this.animator.update(dt);
+            return; // ⛔ nie sterujemy graczem, tylko czekamy na koniec animacji
+        }
         // --- Sterowanie poziome ---
         this.velocity.x = 0; // reset prędkości w osi X, będzie nadana przez klawisze
-        if (keys["ArrowRight"]) this.velocity.x = this.speed;   // px/s
-        if (keys["ArrowLeft"]) this.velocity.x = -this.speed;  // px/s
+        if (keys["ArrowRight"]) {
+            this.velocity.x = this.speed;   // px/s
+            this.facingLeft = false;
+        }
+        if (keys["ArrowLeft"]) {
+            this.velocity.x = -this.speed;  // px/s
+            this.facingLeft = true;
+
+        }
 
         // --- Skok ---
         if (keys["ArrowUp"] && this.onGround) {
@@ -65,31 +100,66 @@ export class PlayerPlatformer extends Entity {
         this.recalculate();
         if (!this.onGround) {
             this.currentAnimation = "jump";
-        } else if (this.velocity.x !== 0) {
+        }
+        else if (this.velocity.x !== 0) {
             this.currentAnimation = "walk";
-        } else {
+
+        }
+        else if (keys["ArrowDown"]) {
+            this.currentAnimation = "die";
+            this.velocity.x = 0;
+            console.log(this.animator.animations[this.current]);
+        }
+        else {
             this.currentAnimation = "idle";
         }
 
         if (this.animator.current !== this.currentAnimation) {
             this.animator.play(this.currentAnimation);
         }
-        this.animator.update(dt);
+        console.log(this.currentAnimation);
         this.animator.update(dt);
     }
 
     draw(ctx, camera) {
+        const screenX = this.x - camera.x;
+        const screenY = this.y - camera.y;
+
         if (this.animator && this.animator.hasSheet()) {
-            // opcjonalnie: kierunek bazujący na prędkości
-            const flip = this.velocity.x < 0;
-            this.animator.draw(ctx, this.x - camera.x, this.y - camera.y, flip);
+            const flip = this.facingLeft;
+            this.animator.draw(ctx, screenX, screenY, flip);
         } else {
-            super.draw(ctx, camera); // fallback – magenta rect
+            super.draw(ctx, camera);
+        }
+
+        // 🔹 Tryb debugowy — cienka ramka wokół sprite’a i hitboxa
+        if (this.debug) {
+            ctx.save();
+            // ramka sprite’a (pełna klatka)
+            ctx.strokeStyle = "rgba(0,255,255,0.8)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(screenX, screenY, this.width, this.height);
+
+            // ramka hitboxa faktycznego (Entity)
+            const hb = this.getHitbox();
+            ctx.save();
+            ctx.strokeStyle = "rgba(255, 0, 34, 0.8)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(hb.x - camera.x, hb.y - camera.y, hb.width, hb.height);
+            ctx.restore();
         }
     }
 
-    colission(obj) {
-        console.log(`zderzylem sie z obiektem typu: ${obj.constructor.name}`);
+
+    die(obj) {
+        this.isDead = true;
+        this.deathTimer = 1.5;
+        this.velocity.x = 0;
+        //this.velocity.y = 0;
+        this.onGround = false;
+        this.currentAnimation = "die";
+        this.animator.play("die");
+        console.log("kolizja z przeciwnikiem");
     }
     resolveCollision(other) {
         // ile Player wszedł w obiekt

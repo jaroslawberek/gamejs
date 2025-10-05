@@ -7,11 +7,13 @@ export class Animator {
      * @param {number} frameHeight
      * @param {Object} animations opcjonalnie: { idle:{row,frames,speed}, ... }
      */
-    constructor(spriteSheet, frameWidth, frameHeight, animations = {}) {
+    constructor(spriteSheet, frameWidth, frameHeight, offsetX = 0, offsetY = 0, animations = {}) {
         this.spriteSheet = spriteSheet || null;
         this.frameWidth = frameWidth;
         this.frameHeight = frameHeight;
         this.animations = { ...animations };
+        this.offsetX = offsetX; // 🔹 nowość — przesunięcie poziome przy rysowaniu
+        this.offsetY = offsetY; // 🔹 nowość — przesunięcie pionowe przy rysowaniu
 
         this.current = null;    // nazwa aktualnej animacji
         this.frameIndex = 0;    // indeks klatki
@@ -35,20 +37,22 @@ export class Animator {
      * @param {number} row   wiersz w sprite sheecie (0-index)
      * @param {number} frames ile klatek
      * @param {number} speed  ile klatek na sekundę
+     * @param {number} startIndex  od ktorego numeru klatki ma zacząć animować
+     * @param {number} startIndrawOffsetX   przesuniecie sprita jesli nie wyglada dobrze juz narysowany
+     * @param {number} drawOffsetY  od ktorego numeru klatki ma zacząć animować
      */
-    add(name, row, frames, speed) {
-        this.animations[name] = { row, frames, speed };
-        if (!this.current) {
-            // pierwsza dodana animacja staje się domyślną
-            this.current = name;
-        }
+    add(name, row, frames, speed, startIndex = 0, drawOffsetX = 0, drawOffsetY = 0, flipOffsetX = null, loop = true, hold = false) {
+        this.animations[name] = { row, frames, speed, startIndex, drawOffsetX, drawOffsetY, flipOffsetX, loop, hold };
+        if (!this.current) this.current = name;
     }
+
 
     /** Wybór animacji (reset klatek, jeśli zmiana) */
     play(name) {
-        if (this.current !== name && this.animations[name]) {
+        const anim = this.animations[name];
+        if (this.current !== name && anim) {
             this.current = name;
-            this.frameIndex = 0;
+            this.frameIndex = anim.startIndex || 0;
             this.timer = 0;
         }
     }
@@ -63,7 +67,21 @@ export class Animator {
 
         while (this.timer >= frameDuration) {
             this.timer -= frameDuration;
-            this.frameIndex = (this.frameIndex + 1) % anim.frames;
+            const nextIndex = this.frameIndex + 1;
+
+            if (nextIndex >= (anim.startIndex || 0) + anim.frames) {
+                if (anim.loop) {
+                    this.frameIndex = anim.startIndex || 0;
+                } else if (anim.hold) {
+                    // pozostań na ostatniej klatce
+                    this.frameIndex = (anim.startIndex || 0) + anim.frames - 1;
+                } else {
+                    // wróć do pierwszej
+                    this.frameIndex = anim.startIndex || 0;
+                }
+            } else {
+                this.frameIndex = nextIndex;
+            }
         }
     }
 
@@ -74,6 +92,7 @@ export class Animator {
      * @param {number} y pozycja na ekranie (już po kamerze)
      * @param {boolean} flipX odbicie poziome
      */
+    // w Animator.draw():
     draw(ctx, x, y, flipX = false) {
         const anim = this.animations[this.current];
         if (!anim || !this.spriteSheet) return false;
@@ -81,22 +100,34 @@ export class Animator {
         const sx = this.frameIndex * this.frameWidth;
         const sy = anim.row * this.frameHeight;
 
+        // 🟩 użyj per-animacja offsetów
+
+
+        const dx = flipX ? -(anim.flipOffsetX ?? anim.drawOffsetX) : anim.drawOffsetX;
+        const dy = anim.drawOffsetY ?? this.offsetY;
+
         ctx.save();
         if (flipX) {
+
             ctx.scale(-1, 1);
             ctx.drawImage(
                 this.spriteSheet,
                 sx, sy, this.frameWidth, this.frameHeight,
-                -x - this.frameWidth, y, this.frameWidth, this.frameHeight
+                -x - this.frameWidth - dx, y + dy,
+                this.frameWidth, this.frameHeight
             );
         } else {
             ctx.drawImage(
                 this.spriteSheet,
                 sx, sy, this.frameWidth, this.frameHeight,
-                x, y, this.frameWidth, this.frameHeight
+                x + dx, y + dy,
+                this.frameWidth, this.frameHeight
             );
         }
         ctx.restore();
         return true;
     }
+
+
+
 }

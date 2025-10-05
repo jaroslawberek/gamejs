@@ -1,12 +1,15 @@
 export class Physics {
     // AABB vs AABB
     static rectRect(a, b) {
+        const A = a.getHitbox ? a.getHitbox() : a;
+        const B = b.getHitbox ? b.getHitbox() : b;
         return (
-            a.x < b.right &&
-            a.right > b.x &&
-            a.y < b.bottom &&
-            a.bottom > b.y
+            A.x < B.right &&
+            A.right > B.x &&
+            A.y < B.bottom &&
+            A.bottom > B.y
         );
+
     }
 
     // Circle vs Circle

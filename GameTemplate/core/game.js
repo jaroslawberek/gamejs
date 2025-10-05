@@ -6,6 +6,7 @@ import { Platform } from "../entities/Platform.js";
 
 export class Game {
     constructor(mode = "topdown", worldWidth = 3000, worldHeight = 3000) {
+        this.showDebug = true;
         this.mode = mode;
         this.canvas = document.getElementById("gameCanvas");
         this.ctx = this.canvas.getContext("2d");
@@ -54,6 +55,7 @@ export class Game {
         this.lastTime = 0;
         this.keys = {};
         this.objects = [];
+        this.backgroundLayers = [];
         this.rect = this.canvas.getBoundingClientRect();
 
         // context — przekazywany do gracza, wrogów, itp.
@@ -80,9 +82,16 @@ export class Game {
 
         // ładowanie zasobów
         loadAssets(() => {
+            this.loadBackground();
             this.reset();
             requestAnimationFrame(this.gameLoop.bind(this));
         });
+    }
+    loadBackground() {
+        this.backgroundLayers = [
+            { img: assets.bg_far, speed: 0.2 },   // daleka warstwa – powolna
+            { img: assets.bg_mid, speed: 0.6 }    // bliższa – szybsza
+        ];
     }
 
     resizeCanvas() {
@@ -111,6 +120,7 @@ export class Game {
         g.lives = 3;
         g.gameState = "playing";
 
+
         // === Platformer mode ===
         if (g.mode === "platformer") {
             g.worldWidth = 3000;
@@ -118,6 +128,7 @@ export class Game {
 
             // Gracz startuje trochę nad ziemią
             g.player = PlayerFactory.create(g.mode, assets.player, 100, g.worldHeight - 150, 64, 64);
+
 
             // === PLATFORMY ===
             g.objects.push(
@@ -139,7 +150,7 @@ export class Game {
             g.objects.push(new Enemy(null, 400, g.worldHeight - 400, 50, 50, 900, 200));
             g.objects.push(new Enemy(null, 400, g.worldHeight - 370, 50, 50, 900, 300));
             g.objects.push(new Enemy(null, 800, 350, 50, 50, 450, 500));
-            // Ustaw kamerę na dole świata (widok na ziemię)
+            //Ustaw kamerę na dole świata (widok na ziemię)
             g.camera.y = g.worldHeight - g.canvas.height;
 
         }
@@ -237,8 +248,11 @@ export class Game {
                 if (obj.constructor.name === "Platform") {
                     this.player.resolveCollision(obj);
                 } else if (obj.constructor.name === "Enemy") {
-                    this.player.resolveCollision(obj);
-                    this.gameState = "gameover";
+                    //  this.player.resolveCollision(obj);
+                    //this.gameState = "gameover";
+                    this.player.die();
+                    this.context.status = "die";
+
                 }
             }
 
@@ -370,7 +384,8 @@ export class Game {
 
             // HUD
             this.drawHUD();
-            this.drawDebug(dt);
+            if (this.showDebug)
+                this.drawDebug(dt);
             // warunek przegranej
             if (this.player.y > this.worldHeight) {
                 this.lives--;
@@ -403,8 +418,22 @@ export class Game {
                 this.reset();
                 this.gameState = "playing";
             }
-        }
 
+        }
+        if (this.keys["d"] || this.keys["D"])
+            this.showDebug = !this.showDebug;
+        if (this.keys["f"] || this.keys["F"])
+            this.player.debug = !this.player.debug;
         requestAnimationFrame(this.gameLoop.bind(this));
     }
 }
+/*
+Dodatkowy bonus
+
+Jak będziemy mieli hitbox per animacja, to dodamy możliwość:
+
+this.animator.add("walk", 1, 6, 10, 0, 5, 11, 14, { hitbox: { x: 8, y: 10, w: 30, h: 45 } });
+
+
+czyli każda animacja będzie mieć nie tylko offset, ale też własny zakres kolizji.
+*/
