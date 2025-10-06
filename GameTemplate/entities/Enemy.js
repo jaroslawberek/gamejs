@@ -21,7 +21,7 @@ export class Enemy extends Entity {
 
         // Prosty ruch patrolowy w poziomie
 
-        this.x += this.speed * dt * this.direction;
+        //this.x += this.speed * dt * this.direction;
 
         // Zmiana kierunku, gdy osiągnie koniec zakresu
         if (this.x > this.startX + this.range) {

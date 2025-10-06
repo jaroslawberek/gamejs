@@ -1,7 +1,9 @@
 export const assetsToLoad = {
     player: "assets/goblin.png",
     // enemy: "img/enemy.png",
-    platform: "assets/platform.png"
+    platform: "assets/platform.png",
+    // bg_far: "assets/bg_far.png",  // bardzo daleka góra
+    bg_mid: "assets/bg_mid3.png"   // bliższa
 };
 
 export const assets = {};

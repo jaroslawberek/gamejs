@@ -2,19 +2,19 @@ import { Entity } from "./Entity.js";
 import { Animator } from "../core/Animator.js";
 
 export class PlayerPlatformer extends Entity {
-    constructor(img, x, y, w, h) {
-        super(img, x, y, w, h);
+    constructor(img, x, y, w, h, scale) {
+        super(img, x, y, w * scale, h * scale);
         // this.speed = 200; // px na sekundę
         this.speed = 250; // px/s
         this.gravity = 1500; // px/s²
         this.jumpStrength = 900; // px/s
         this.onGround = false;
         this.facingLeft = false; // w ktora strone ryj miał ostatnio :)
-
+        this.scale = scale;
 
 
         this.velocity = { x: 0, y: 0 } //prędkość w poziomie i pionie
-        this.animator = new Animator(img, w, h);
+        this.animator = new Animator(img, w, h, this.scale);
         // 🔹 Dopasuj hitbox do realnej postaci (goblin nie zajmuje pełnego 64×64)
         //this.hitbox.offsetX = 5;     // przesunięcie w prawo
         // this.hitbox.offsetY = 11;      // przesunięcie w dół
@@ -23,10 +23,10 @@ export class PlayerPlatformer extends Entity {
 
         // Dodaj animacje (przykładowe)
         const animConfig = {
-            idle: { row: 1, frames: 1, speed: 8, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11 },
-            walk: { row: 1, frames: 6, speed: 10, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11 },
+            idle: { row: 1, frames: 1, speed: 8, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11, flipOffsetX: -20 },
+            walk: { row: 1, frames: 6, speed: 10, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11, flipOffsetX: -20 },
             jump: { row: 1, frames: 3, speed: 4, startIndex: 2 },
-            die: { row: 4, frames: 4, speed: 3, startIndex: 0, drawOffsetX: 0, drawOffsetY: 5, flipOffsetX: null, loop: false, hold: true },
+            die: { row: 4, frames: 4, speed: 3, startIndex: 0, drawOffsetX: -5, drawOffsetY: 5, flipOffsetX: null, loop: false, hold: true },
         };
         for (const [name, cfg] of Object.entries(animConfig)) {
             this.animator.add(name, cfg.row, cfg.frames, cfg.speed, cfg.startIndex, cfg.drawOffsetX, cfg.drawOffsetY, cfg.flipOffsetX, cfg.loop, cfg.hold);
@@ -39,7 +39,7 @@ export class PlayerPlatformer extends Entity {
     update(dt, context) {
         const { canvas, keys, hudHeight, worldWidth, worldHeight } = context;
         if (this.isDead) {
-            // spadanie po śmierci
+            // spadanie po śmierciff
             this.velocity.y += this.gravity * dt;
             this.y += this.velocity.y * dt;
             // po dotknięciu ziemi — zatrzymaj

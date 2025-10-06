@@ -7,14 +7,14 @@ export class Animator {
      * @param {number} frameHeight
      * @param {Object} animations opcjonalnie: { idle:{row,frames,speed}, ... }
      */
-    constructor(spriteSheet, frameWidth, frameHeight, offsetX = 0, offsetY = 0, animations = {}) {
+    constructor(spriteSheet, frameWidth, frameHeight, scale = 1, animations = {}) {
         this.spriteSheet = spriteSheet || null;
         this.frameWidth = frameWidth;
         this.frameHeight = frameHeight;
         this.animations = { ...animations };
-        this.offsetX = offsetX; // 🔹 nowość — przesunięcie poziome przy rysowaniu
-        this.offsetY = offsetY; // 🔹 nowość — przesunięcie pionowe przy rysowaniu
-
+        //this.offsetX = offsetX; // 🔹 nowość — przesunięcie poziome przy rysowaniu
+        // this.offsetY = offsetY; // 🔹 nowość — przesunięcie pionowe przy rysowaniu
+        this.scale = scale;
         this.current = null;    // nazwa aktualnej animacji
         this.frameIndex = 0;    // indeks klatki
         this.timer = 0;         // licznik czasu w sekundach
@@ -114,14 +114,14 @@ export class Animator {
                 this.spriteSheet,
                 sx, sy, this.frameWidth, this.frameHeight,
                 -x - this.frameWidth - dx, y + dy,
-                this.frameWidth, this.frameHeight
+                this.frameWidth * this.scale, this.frameHeight * this.scale
             );
         } else {
             ctx.drawImage(
                 this.spriteSheet,
                 sx, sy, this.frameWidth, this.frameHeight,
                 x + dx, y + dy,
-                this.frameWidth, this.frameHeight
+                this.frameWidth * this.scale, this.frameHeight * this.scale
             );
         }
         ctx.restore();

@@ -12,12 +12,12 @@ export class PlayerFactory {
      * @param {number} h
      * @returns {PlayerTopDown|PlayerPlatformer}
      */
-    static create(mode, img, x, y, w, h) {
+    static create(mode, img, x, y, w, h, scale = 1) {
         switch (mode) {
             case "topdown":
-                return new PlayerTopDown(img, x, y, w, h);
+                return new PlayerTopDown(img, x, y, w, h, scale);
             case "platformer":
-                return new PlayerPlatformer(img, x, y, w, h);
+                return new PlayerPlatformer(img, x, y, w, h, scale);
             default:
                 throw new Error(`Nieznany tryb gry: ${mode}`);
         }

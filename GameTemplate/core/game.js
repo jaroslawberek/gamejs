@@ -5,7 +5,7 @@ import { PlayerFactory } from "../entities/PlayerFactory.js";
 import { Platform } from "../entities/Platform.js";
 
 export class Game {
-    constructor(mode = "topdown", worldWidth = 3000, worldHeight = 3000) {
+    constructor(mode = "topdown", worldWidth = 10000, worldHeight = 3000) {
         this.showDebug = true;
         this.mode = mode;
         this.canvas = document.getElementById("gameCanvas");
@@ -90,7 +90,7 @@ export class Game {
     loadBackground() {
         this.backgroundLayers = [
             { img: assets.bg_far, speed: 0.2 },   // daleka warstwa – powolna
-            { img: assets.bg_mid, speed: 0.6 }    // bliższa – szybsza
+            { img: assets.bg_mid, speed: 0.9 }    // bliższa – szybsza
         ];
     }
 
@@ -123,11 +123,12 @@ export class Game {
 
         // === Platformer mode ===
         if (g.mode === "platformer") {
-            g.worldWidth = 3000;
+            g.worldWidth = 10000;
             g.worldHeight = 1200;
 
             // Gracz startuje trochę nad ziemią
-            g.player = PlayerFactory.create(g.mode, assets.player, 100, g.worldHeight - 150, 64, 64);
+            const scale = 1.5;
+            g.player = PlayerFactory.create(g.mode, assets.player, 100, g.worldHeight - 150, 64, 64, 1.5);
 
 
             // === PLATFORMY ===
@@ -164,7 +165,7 @@ export class Game {
             // Gracz na środku świata (z uwzględnieniem HUD)
             g.player = PlayerFactory.create(
                 g.mode,
-                null,
+                assets.player,
                 g.worldWidth / 2 - 25,
                 g.worldHeight / 2 - 25 + offsetY,
                 50,
@@ -363,6 +364,44 @@ export class Game {
         ctx.restore();
     }
 
+    drawBackground() {
+        const { camera } = this;
+        const ctx = this.ctx;
+
+        ctx.save();
+
+        for (let i = 0; i < this.backgroundLayers.length; i++) {
+            const layer = this.backgroundLayers[i];
+            const img = layer.img;
+            const speed = layer.speed;
+
+            if (!img) continue;
+
+            const x = -camera.x * speed;
+            const repeatCount = Math.ceil(this.canvas.width / img.width) + 2;
+            const startX = (x % img.width) - img.width;
+
+            const height = this.canvas.height;
+
+            // 🔹 Ustal przesunięcie pionowe — tło nieba lekko wyżej
+            let offsetY = 0;
+            // if (i === 0) offsetY = -this.canvas.height * 0.15; // plan dalszy uniesiony o 15%
+            // if (i === 1) offsetY = 0; // plan bliższy bez zmian
+
+            // ctx.globalAlpha = i === 0 ? 1.0 : 0.95;
+            ctx.globalAlpha = 0.85;
+
+            for (let j = 0; j < repeatCount; j++) {
+                ctx.drawImage(img, startX + j * img.width, offsetY, img.width, height);
+            }
+        }
+
+        ctx.globalAlpha = 1.0;
+        ctx.restore();
+    }
+
+
+
 
     gameLoop(timeStamp) {
         const deltaTime = timeStamp - this.lastTime;
@@ -373,6 +412,8 @@ export class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         if (this.gameState === "playing") {
+            this.drawBackground();
+
             this.player.update(dt, this.context);
             this.objects.forEach(o => o.update(dt, this.context));
             this.checkCollisions();
@@ -399,7 +440,7 @@ export class Game {
             }
 
             // warunek wygranej (do testu)
-            if (this.player.x > 2900) {
+            if (this.player.x > 8900) {
                 this.gameState = "win";
             }
         } else {
