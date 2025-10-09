@@ -7,12 +7,7 @@ export class Entity {
         this.height = h;        // wysokość
 
         // automatyczne właściwości pomocnicze
-        this.right = this.x + this.width;
-        this.bottom = this.y + this.height;
-        this.center = {
-            x: this.x + this.width / 2,
-            y: this.y + this.height / 2
-        };
+        this.recalculate();
         //Hitbox - potrzebny do ustalenia obszaru wrazliwego na kolizje
         this.hitbox = {
             offsetX: 0,
@@ -22,7 +17,6 @@ export class Entity {
         };
     }
 
-
     /**
      * Aktualizacja granic obiektu.
      * 
@@ -30,8 +24,10 @@ export class Entity {
     recalculate() {
         this.right = this.x + this.width;
         this.bottom = this.y + this.height;
-        this.center.x = this.x + this.width / 2;
-        this.center.y = this.y + this.height / 2;
+        this.center = {
+            x: this.x + this.width / 2,
+            y: this.y + this.height / 2
+        };
     }
 
     /**

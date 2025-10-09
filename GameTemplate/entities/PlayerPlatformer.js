@@ -3,6 +3,7 @@ import { Animator } from "../core/Animator.js";
 
 export class PlayerPlatformer extends Entity {
     constructor(img, x, y, w, h, scale) {
+        console.log("player constr x:", x);
         super(img, x, y, w * scale, h * scale);
         // this.speed = 200; // px na sekundę
         this.speed = 250; // px/s
@@ -11,6 +12,7 @@ export class PlayerPlatformer extends Entity {
         this.onGround = false;
         this.facingLeft = false; // w ktora strone ryj miał ostatnio :)
         this.scale = scale;
+        this.debug = false;  // <—— możesz zmieniać na false
 
 
         this.velocity = { x: 0, y: 0 } //prędkość w poziomie i pionie
@@ -21,7 +23,7 @@ export class PlayerPlatformer extends Entity {
         this.hitbox.widthFactor = 0.4;  // hitbox to ~65% szerokości
         this.hitbox.heightFactor = 1;  // hitbox to ~80% wysokości
 
-        // Dodaj animacje (przykładowe)
+        // Dodaj animacje 
         const animConfig = {
             idle: { row: 1, frames: 1, speed: 8, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11, flipOffsetX: -20 },
             walk: { row: 1, frames: 6, speed: 10, startIndex: 0, drawOffsetX: 6, drawOffsetY: 11, flipOffsetX: -20 },
@@ -30,16 +32,15 @@ export class PlayerPlatformer extends Entity {
         };
         for (const [name, cfg] of Object.entries(animConfig)) {
             this.animator.add(name, cfg.row, cfg.frames, cfg.speed, cfg.startIndex, cfg.drawOffsetX, cfg.drawOffsetY, cfg.flipOffsetX, cfg.loop, cfg.hold);
-        } this.resolveCollision
-        this.debug = false;  // <—— możesz zmieniać na false
-        console.log(this.animator.animations);
+        }
+
     }
 
 
     update(dt, context) {
         const { canvas, keys, hudHeight, worldWidth, worldHeight } = context;
         if (this.isDead) {
-            // spadanie po śmierciff
+            // spadanie po śmierci
             this.velocity.y += this.gravity * dt;
             this.y += this.velocity.y * dt;
             // po dotknięciu ziemi — zatrzymaj
@@ -108,7 +109,7 @@ export class PlayerPlatformer extends Entity {
         else if (keys["ArrowDown"]) {
             this.currentAnimation = "die";
             this.velocity.x = 0;
-            console.log(this.animator.animations[this.current]);
+            // console.log(this.animator.animations[this.current]);
         }
         else {
             this.currentAnimation = "idle";
@@ -117,12 +118,13 @@ export class PlayerPlatformer extends Entity {
         if (this.animator.current !== this.currentAnimation) {
             this.animator.play(this.currentAnimation);
         }
-        console.log(this.currentAnimation);
+        // console.log(this.currentAnimation);
         this.animator.update(dt);
     }
 
     draw(ctx, camera) {
         const screenX = this.x - camera.x;
+        console.log("platformer draw -- this.x: ", this.x);
         const screenY = this.y - camera.y;
 
         if (this.animator && this.animator.hasSheet()) {
@@ -150,7 +152,6 @@ export class PlayerPlatformer extends Entity {
         }
     }
 
-
     die(obj) {
         this.isDead = true;
         this.deathTimer = 1.5;
@@ -159,6 +160,7 @@ export class PlayerPlatformer extends Entity {
         this.onGround = false;
         this.currentAnimation = "die";
         this.animator.play("die");
+        this.lives--;
         console.log("kolizja z przeciwnikiem");
     }
     resolveCollision(other) {

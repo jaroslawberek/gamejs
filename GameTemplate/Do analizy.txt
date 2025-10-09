@@ -1,0 +1,30 @@
+1) Co tu sie dzije?
+	const aspectRatio = 16 / 9;
+        const maxWidth = window.innerWidth * 0.9;
+        const maxHeight = window.innerHeight * 0.9;
+
+        if (maxWidth / maxHeight > aspectRatio) {
+            this.canvas.height = maxHeight;
+            this.canvas.width = maxHeight * aspectRatio;
+        } else {
+            this.canvas.width = maxWidth;
+            this.canvas.height = maxWidth / aspectRatio;
+        }
+		
+2) Co robi: 
+	ctx.imageSmoothingEnabled = false; ?
+
+3) Javascript: ciekawe podejscie:
+
+ updateCamera() {
+        const { player, camera, canvas, worldWidth, worldHeight, mode } = this;
+		}
+		
+4)  Dowiedziec sie cos na ten temat - ctx.save(); ctx.restore();
+
+5) Cala funckaja drawBackgaund do analizy 
+
+6. Dlaczego gameLoop wywołujemy tak w gameLoop i dlaczego tak w 
+loadAssets()
+
+
