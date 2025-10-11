@@ -11,7 +11,7 @@ export class Game {
      * @param {*} worldWidth 
      * @param {*} worldHeight 
      */
-    constructor(mode = "topdown", worldWidth = 10000, worldHeight = 3000) {
+    constructor(mode = "topdown", worldWidth = 4000, worldHeight = 3000) {
         this.showDebug = true;
         this.mode = mode;
         this.canvas = document.getElementById("gameCanvas");
@@ -23,7 +23,7 @@ export class Game {
         // granice
         this.Recalculate();
         //Ustawienie odpowiednich proporcji ekranu
-        this.SetCanavasProportion(this.aspectRatio);
+        this.setCanavasProportion(this.aspectRatio);
         //wysokosc gornego okna informacyjnego TODO: Utworzyć obiekt
         this.hudHeight = 50;
         this.ctx.imageSmoothingEnabled = false; //?
@@ -33,6 +33,7 @@ export class Game {
         this.mouse = {};
         this.objects = [];
         this.backgroundLayers = [];
+        this.lives = 3;
 
         //TODO: Utworzyć obiekt Camera
         this.camera = {
@@ -85,10 +86,11 @@ export class Game {
     * 
     */
     connectEvents() {
-        window.addEventListener("keydown", e => this.keys[e.key] = true);
-        window.addEventListener("keyup", e => this.keys[e.key] = false);
+        const game = this;
+        window.addEventListener("keydown", e => game.keys[e.key] = true);
+        window.addEventListener("keyup", e => game.keys[e.key] = false);
         // reakcja na resize
-        window.addEventListener("resize", () => this.resizeCanvas());
+        window.addEventListener("resize", () => game.resizeCanvas());
     }
 
     /**
@@ -96,13 +98,14 @@ export class Game {
      * 
      */
     Recalculate() {
-        this.width = this.canvas.width;
-        this.height = this.canvas.height;
-        this.right = this.width;
-        this.bottom = this.height;
-        this.center = {
-            x: this.width / 2,
-            y: this.height / 2
+        const game = this;
+        game.width = game.canvas.width;
+        game.height = game.canvas.height;
+        game.right = game.width;
+        game.bottom = game.height;
+        game.center = {
+            x: game.width / 2,
+            y: game.height / 2
         };
     }
 
@@ -110,18 +113,19 @@ export class Game {
      * Ustal proporcje canvas
      * @param {*} aspectRatio 
      */
-    SetCanavasProportion(aspectRatio) {
+    setCanavasProportion(aspectRatio) {
+        const game = this;
         const maxWidth = window.innerWidth * 0.9;
         const maxHeight = window.innerHeight * 0.9;
 
         if (maxWidth / maxHeight > aspectRatio) {
-            this.canvas.height = maxHeight;
-            this.canvas.width = maxHeight * aspectRatio;
+            game.canvas.height = maxHeight;
+            game.canvas.width = maxHeight * aspectRatio;
         } else {
-            this.canvas.width = maxWidth;
-            this.canvas.height = maxWidth / aspectRatio;
+            game.canvas.width = maxWidth;
+            game.canvas.height = maxWidth / aspectRatio;
         }
-        this.Recalculate();
+        game.Recalculate();
     }
 
     /**
@@ -129,26 +133,28 @@ export class Game {
     *  
     */
     loadBackground() {
-        this.backgroundLayers = [
+        const game = this;
+        game.backgroundLayers = [
             { img: assets.bg_far, speed: 0.2 },   // daleka warstwa – powolna
             { img: assets.bg_mid, speed: 0.9 }    // bliższa – szybsza
         ];
     }
 
     resizeCanvas() {
+        const game = this;
         const aspectRatio = 16 / 9;
         const maxWidth = window.innerWidth * 0.9;
         const maxHeight = window.innerHeight * 0.9;
 
         if (maxWidth / maxHeight > aspectRatio) {
-            this.canvas.height = maxHeight;
-            this.canvas.width = maxHeight * aspectRatio;
+            game.canvas.height = maxHeight;
+            game.canvas.width = maxHeight * aspectRatio;
         } else {
-            this.canvas.width = maxWidth;
-            this.canvas.height = maxWidth / aspectRatio;
+            game.canvas.width = maxWidth;
+            game.canvas.height = maxWidth / aspectRatio;
         }
 
-        this.Recalculate();
+        game.Recalculate();
     }
 
     /**
@@ -158,14 +164,16 @@ export class Game {
     */
     reset() {
         const game = this;
+        this.winPos = 2500; //jak dojdzie do pozycji x=1300 wygrana
         game.objects = []; // wyczyść poprzednie obiekty
-        game.lives = 3;
+        if (game.lives === 0)
+            game.lives = 3;
         game.gameState = "playing";
 
         // === Platformer mode ===
         if (game.mode === "platformer") {
-            game.worldWidth = 10000;
-            game.worldHeight = 1200;
+            // game.worldWidth = 3000;
+            // game.worldHeight = 1200;
 
             game.player = PlayerFactory.create(game.mode, assets.player, 0, game.worldHeight - 80, 64, 64, 1.5);
 
@@ -199,16 +207,17 @@ export class Game {
     */
     updateCamera() {
         const { player, camera, canvas, worldWidth, worldHeight, mode } = this;
+        const game = this;
 
         // 🟦 Tryb PLATFORMOWY — kamera trzyma gracza na środku X, ale z lekkim offsetem Y (żeby było widać „przód”)
         if (mode === "platformer") {
-            this.camera.x = this.player.center.x - this.center.x;
-            this.camera.y = this.player.center.y - this.center.y / 2; // offset  pionie
-
+            game.camera.x = game.player.x - camera.margin;
+            game.camera.y = game.player.center.y - game.center.y / 2; // offset  pionie
+            // console.log();
             // ograniczenia w poziomie
             if (camera.x < 0) camera.x = 0;
-            if (camera.x > worldWidth - canvas.width)
-                camera.x = worldWidth - canvas.width;
+            if (camera.x > game.winPos - camera.margin * 2)
+                camera.x = game.winPos - camera.margin * 2;
 
             // ograniczenia w pionie
             if (camera.y < 0) camera.y = 0;
@@ -218,8 +227,8 @@ export class Game {
 
         // 🟥 Tryb TOP-DOWN — kamera zawsze trzyma gracza na środku (pełne śledzenie)
         else if (mode === "topdown") {
-            camera.x = player.center.x - this.center.x;
-            camera.y = player.center.y - this.center.y;
+            camera.x = player.center.x - game.center.x;
+            camera.y = player.center.y - game.center.y;
 
             if (camera.x < 0) camera.x = 0;
             if (camera.y < 0) camera.y = 0;
@@ -235,23 +244,23 @@ export class Game {
     *  
     */
     checkCollisions() {
-        this.objects.forEach(obj => {
+        const game = this;
+        game.objects.forEach(obj => {
             // 🔹 kolizje Playera
-            if (Physics.rectRect(this.player, obj)) {
+            if (Physics.rectRect(game.player, obj)) {
                 if (obj.constructor.name === "Platform") {
-                    this.player.resolveCollision(obj);
-                } else if (obj.constructor.name === "Enemy") {
-                    //  this.player.resolveCollision(obj);
-                    //this.gameState = "gameover";
-                    this.player.die();
-                    this.context.status = "die";
+                    game.player.resolveCollision(obj);
+                } else if (!game.player.isDead && obj.constructor.name === "Enemy") {
+                    //  game.player.resolveCollision(obj);
+                    game.player.die();
+                    game.context.status = "die";
 
                 }
             }
 
             // 🔹 kolizje Enemy z platformami
             if (obj.constructor.name === "Enemy") {
-                this.objects.forEach(other => {
+                game.objects.forEach(other => {
                     if (obj === other) return; // pomiń samego siebie
                     // 🔸 Enemy vs Platform
                     if (other.constructor.name === "Platform") {
@@ -290,27 +299,27 @@ export class Game {
     *  
     */
     drawHUD() {
-        const ctx = this.ctx;
-        const grad = ctx.createLinearGradient(0, 0, 0, this.hudHeight);
+        const game = this;
+        const ctx = game.ctx;
+        const grad = ctx.createLinearGradient(0, 0, 0, game.hudHeight);
         grad.addColorStop(0, "rgba(0, 0, 0, 1)");
         grad.addColorStop(1, "rgba(0, 0, 0, 1)");
         ctx.save();
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, this.width, this.hudHeight);
+        ctx.fillRect(0, 0, game.width, game.hudHeight);
         // 🔹 cień pod HUD
         ctx.shadowColor = "rgba(0,0,0,0.6)";
         ctx.shadowBlur = 10;
-        ctx.fillRect(0, this.hudHeight - 3, this.width, 5);
+        ctx.fillRect(0, game.hudHeight - 3, game.width, 5);
         // 🔹 tekst
         ctx.shadowBlur = 0;
         ctx.fillStyle = "#fff";
         ctx.font = "20px Arial";
         ctx.textAlign = "left";
-        ctx.fillText(`Życia: ${this.lives}`, 20, 30);
+        ctx.fillText(`Życia: ${game.lives}`, 20, 30);
         ctx.fillText(`Czas: ${Math.floor(performance.now() / 1000)} s`, 150, 30);
         ctx.textAlign = "right";
-        ctx.fillText(`Gra: Super Demo`, this.width - 180, 30);
-        ctx.fillText(`Canvas: ${this.width}×${this.height}`, this.width - 20, 30);
+        ctx.fillText(`Gra: Super Demo`, game.width - 180, 30);
         ctx.restore();
     }
 
@@ -319,35 +328,37 @@ export class Game {
     *  
     */
     drawDebug(dt) {
-        const ctx = this.ctx;
+        const game = this;
+        const ctx = game.ctx;
         ctx.save();
         ctx.font = "14px monospace";
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        ctx.fillStyle = "rgba(255,255,255,1)";
         ctx.textAlign = "left";
 
         const fps = (1 / dt).toFixed(1);
-        const baseY = this.hudHeight + 20;
+        const baseY = game.hudHeight + 20;
         let y = baseY;
 
         // 🔹 FPS i czas klatki
         ctx.fillText(`FPS: ${fps}`, 20, y); y += 18;
         ctx.fillText(`Delta: ${(dt * 1000).toFixed(2)} ms`, 20, y); y += 18;
         // 🔹 Player
-        ctx.fillText(`Player.x: ${this.player.x.toFixed(1)} | y: ${this.player.y.toFixed(1)}`, 20, y); y += 18;
-        ctx.fillText(`Vel.x: ${this.player.velocity?.x?.toFixed(1) || 0} | Vel.y: ${this.player.velocity?.y?.toFixed(1) || 0}`, 20, y); y += 18;
-        ctx.fillText(`Center: ${this.player.center.x.toFixed(1)}, ${this.player.center.y.toFixed(1)}`, 20, y); y += 18;
-        ctx.fillText(`OnGround: ${this.player.onGround ? "✅" : "❌"}`, 20, y); y += 22;
+        ctx.fillText(`Player.x: ${game.player.x.toFixed(1)} | y: ${game.player.y.toFixed(1)} | center x:${game.player.center.x}  y: ${game.player.center.y}`, 20, y); y += 18;
+        ctx.fillText(`Vel.x: ${game.player.velocity?.x?.toFixed(1) || 0} | Vel.y: ${game.player.velocity?.y?.toFixed(1) || 0}`, 20, y); y += 18;
+        ctx.fillText(`Center: ${game.player.center.x.toFixed(1)}, ${game.player.center.y.toFixed(1)}`, 20, y); y += 18;
+        ctx.fillText(`OnGround: ${game.player.onGround ? "✅" : "❌"}`, 20, y); y += 22;
         // 🔹 Kamera
-        ctx.fillText(`Camera.x: ${this.camera.x.toFixed(1)} | y: ${this.camera.y.toFixed(1)}`, 20, y); y += 18;
-        ctx.fillText(`Cam.center: ${this.camera.center?.x?.toFixed(1) || 0}, ${this.camera.center?.y?.toFixed(1) || 0}`, 20, y); y += 18;
-        ctx.fillText(`Cam.margin: ${this.camera.margin || 0}`, 20, y); y += 22;
+        ctx.fillText(`Camera.x: ${game.camera.x.toFixed(1)} | y: ${game.camera.y.toFixed(1)}`, 20, y); y += 18;
+        ctx.fillText(`Cam.center: ${game.camera.center?.x?.toFixed(1) || 0}, ${game.camera.center?.y?.toFixed(1) || 0}`, 20, y); y += 18;
+        ctx.fillText(`Cam.margin: ${game.camera.margin || 0}`, 20, y); y += 22;
         // 🔹 Wymiary świata
-        ctx.fillText(`World: ${this.worldWidth}×${this.worldHeight}`, 20, y); y += 18;
-        ctx.fillText(`Visible: ${this.width}×${this.height}`, 20, y);
+        ctx.fillText(`World: ${game.worldWidth}×${game.worldHeight}`, 20, y); y += 18;
+        ctx.fillText(`Visible: ${game.width}×${game.height}`, 20, y); y += 20;
+        ctx.fillText(`róznica: ${game.player.center.x - game.center.x}×${game.player.center.y - game.center.y / 2}`, 20, y); y += 20;
         // 🔹 Obrys kamery
         ctx.strokeStyle = "rgba(255,255,255,0.5)";
         ctx.lineWidth = 1;
-        ctx.strokeRect(0, this.hudHeight, this.width, this.height - this.hudHeight);
+        ctx.strokeRect(0, game.hudHeight, game.width, game.height - game.hudHeight);
 
         ctx.restore();
     }
@@ -358,21 +369,22 @@ export class Game {
    */
     drawBackground() {
         const { camera } = this;
-        const ctx = this.ctx;
+        const game = this;
+        const ctx = game.ctx;
 
         ctx.save();
-        for (let i = 0; i < this.backgroundLayers.length; i++) {
-            const layer = this.backgroundLayers[i];
+        for (let i = 0; i < game.backgroundLayers.length; i++) {
+            const layer = game.backgroundLayers[i];
             const img = layer.img;
             const speed = layer.speed;
             if (!img) continue;
             const x = -camera.x * speed;
-            const repeatCount = Math.ceil(this.width / img.width) + 2;
+            const repeatCount = Math.ceil(game.width / img.width) + 2;
             const startX = (x % img.width) - img.width;
-            const height = this.height;
+            const height = game.height;
             // 🔹 Ustal przesunięcie pionowe — tło nieba lekko wyżej
             let offsetY = 0;
-            if (i === 0) offsetY = -this.height * 0.20; // plan dalszy uniesiony o 15%
+            if (i === 0) offsetY = -game.height * 0.20; // plan dalszy uniesiony o 15%
             if (i === 1) offsetY = 0; // plan bliższy bez zmian
             ctx.globalAlpha = i === 0 ? 0.3 : 1.0;
             // ctx.globalAlpha = 0.8;
@@ -389,45 +401,46 @@ export class Game {
     *  
     */
     gameLoop(timeStamp) {
-        const deltaTime = timeStamp - this.lastTime;
-        this.lastTime = timeStamp;
+        const game = this;
+        const deltaTime = timeStamp - game.lastTime;
+        game.lastTime = timeStamp;
         const MAX_DT = 50;
         const dt = Math.min(deltaTime, MAX_DT) / 1000;
 
-        this.ctx.clearRect(0, 0, this.width, this.height);
+        game.ctx.clearRect(0, 0, game.width, game.height);
 
-        if (this.gameState === "playing") {
-            this.gameUpdate(dt);
+        if (game.gameState === "playing") {
+            game.gameUpdate(dt);
             // rysowanie z przesunięciem kamery
-            this.gameDraw(dt);
+            game.gameDraw(dt);
             // sprawdzenie wygranej lub przegranej: ewentualne ustawienie stanu
-            this.updateGameState();
-        } else if (this.gameState === "win") {
+            game.updateGameState();
+        } else if (game.gameState === "win") {
             // ekrany końcowe
-            this.ctx.fillStyle = "black";
-            this.ctx.font = "30px Arial";
-            this.ctx.textAlign = "center";
-            this.ctx.fillText("YOU WIN! - Naciśnij R aby zagrać ponownie", this.width / 2, this.height / 2);
+            game.ctx.fillStyle = "black";
+            game.ctx.font = "30px Arial";
+            game.ctx.textAlign = "center";
+            game.ctx.fillText("YOU WIN! - Naciśnij R aby zagrać ponownie", game.width / 2, game.height / 2);
         }
-        else if (this.gameState === "gameover") {
-            this.ctx.fillStyle = "black";
-            this.ctx.font = "30px Arial";
-            this.ctx.textAlign = "center";
-            this.ctx.fillText("GAME OVER - Naciśnij R aby zrestartować", this.width / 2, this.height / 2);
+        else if (game.gameState === "gameover") {
+            game.ctx.fillStyle = "black";
+            game.ctx.font = "30px Arial";
+            game.ctx.textAlign = "center";
+            game.ctx.fillText("GAME OVER - Naciśnij R aby zrestartować", game.width / 2, game.height / 2);
         }
         /* else {
 
         }*/
-        if (this.keys["r"] || this.keys["R"]) {
-            this.reset();
-            this.gameState = "playing";
+        if (game.keys["r"] || game.keys["R"]) {
+            game.reset();
+            game.gameState = "playing";
         }
-        if (this.keys["d"] || this.keys["D"])
-            this.showDebug = !this.showDebug;
-        if (this.keys["f"] || this.keys["F"])
-            this.player.debug = !this.player.debug;
+        if (game.keys["d"] || game.keys["D"])
+            game.showDebug = !game.showDebug;
+        if (game.keys["f"] || game.keys["F"])
+            game.player.debug = !game.player.debug;
 
-        requestAnimationFrame(this.gameLoop.bind(this));
+        requestAnimationFrame(game.gameLoop.bind(this));
     }
 
     /**
@@ -435,10 +448,11 @@ export class Game {
     *  
     */
     gameUpdate(dt) {
-        this.player.update(dt, this.context);
-        this.objects.forEach(o => o.update(dt, this.context));
-        this.checkCollisions();
-        this.updateCamera();
+        const game = this;
+        game.player.update(dt, game.context);
+        game.objects.forEach(o => o.update(dt, game.context));
+        game.checkCollisions();
+        game.updateCamera();
     }
 
     /**
@@ -446,12 +460,13 @@ export class Game {
     *  
     */
     gameDraw(dt) {
-        this.drawBackground();
-        this.objects.forEach(o => o.draw(this.ctx, this.camera));
-        this.player.draw(this.ctx, this.camera);
+        const game = this;
+        game.drawBackground();
+        game.objects.forEach(o => o.draw(game.ctx, game.camera));
+        game.player.draw(game.ctx, game.camera);
         // HUD
-        this.drawHUD();
-        if (this.showDebug) this.drawDebug(dt);
+        game.drawHUD();
+        if (game.showDebug) game.drawDebug(dt);
     }
 
 
@@ -460,12 +475,13 @@ export class Game {
      *  
      */
     updateGameState() {
-        if (this.lives <= 0) {
-            this.gameState = "gameover";
-            this.player.velocity.y = 0;
+        const game = this;
+        if (game.lives <= 0) {
+            game.gameState = "gameover";
+            game.player.velocity.y = 0;
         } else
-            if (this.player.x > 3000) {
-                this.gameState = "win";
+            if (game.player.x > game.winPos) {
+                game.gameState = "win";
             }
     }
 }
@@ -474,7 +490,7 @@ Dodatkowy bonus
 
 Jak będziemy mieli hitbox per animacja, to dodamy możliwość:
 
-this.animator.add("walk", 1, 6, 10, 0, 5, 11, 14, { hitbox: { x: 8, y: 10, w: 30, h: 45 } });
+game.animator.add("walk", 1, 6, 10, 0, 5, 11, 14, { hitbox: { x: 8, y: 10, w: 30, h: 45 } });
 
 
 czyli każda animacja będzie mieć nie tylko offset, ale też własny zakres kolizji.

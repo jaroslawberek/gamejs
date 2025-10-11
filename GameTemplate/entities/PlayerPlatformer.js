@@ -39,159 +39,195 @@ export class PlayerPlatformer extends Entity {
 
     update(dt, context) {
         const { canvas, keys, hudHeight, worldWidth, worldHeight } = context;
-        if (this.isDead) {
+        const player = this;
+        if (player.isDead) {
             // spadanie po śmierci
-            this.velocity.y += this.gravity * dt;
-            this.y += this.velocity.y * dt;
+            player.velocity.y += player.gravity * dt;
+            player.y += player.velocity.y * dt;
             // po dotknięciu ziemi — zatrzymaj
-            if (this.onGround) {
-                this.velocity.y = 0;
+            if (player.onGround) {
+                player.velocity.y = 0;
             }
-            this.recalculate();
-            this.deathTimer -= dt;
-            if (this.deathTimer <= 0) {
+            player.recalculate();
+            player.deathTimer -= dt;
+            if (player.deathTimer <= 0) {
                 context.game.lives--;
-                if (context.game.lives <= 0) {
+                console.log(context.game.lives);
+                if (context.game.lives === 0) {
                     context.game.gameState = "gameover";
                 } else {
                     context.game.reset(); // respawn
                 }
             }
-            this.animator.update(dt);
+            player.animator.update(dt);
             return; // ⛔ nie sterujemy graczem, tylko czekamy na koniec animacji
         }
         // --- Sterowanie poziome ---
-        this.velocity.x = 0; // reset prędkości w osi X, będzie nadana przez klawisze
+        player.velocity.x = 0; // reset prędkości w osi X, będzie nadana przez klawisze
         if (keys["ArrowRight"]) {
-            this.velocity.x = this.speed;   // px/s
-            this.facingLeft = false;
+            player.velocity.x = player.speed;   // px/s idzie w prawo - ustawienie predkosc  dodatniej dla x 
+            player.facingLeft = false;
         }
         if (keys["ArrowLeft"]) {
-            this.velocity.x = -this.speed;  // px/s
-            this.facingLeft = true;
+            player.velocity.x = -player.speed;  // px/s - idzie nw lewo - predkosx x ujemna
+            player.facingLeft = true;
 
         }
-
         // --- Skok ---
-        if (keys["ArrowUp"] && this.onGround) {
-            this.velocity.y = -this.jumpStrength; // px/s w górę
-            this.onGround = false;
+        if (keys["ArrowUp"] && player.onGround) {         // jezeli zdarzenie klawisz gora i player na czyms stoi
+            player.velocity.y = -player.jumpStrength;       // px/s w górę - ujemnie bo do gory skaczea  do gory y maleja
+            player.onGround = false;                      // no i juz nie stoi na niczym
         }
 
         // --- Grawitacja ---
-        this.velocity.y += this.gravity * dt; // px/s² * czas = px/s
+        player.velocity.y += player.gravity * dt; // px/s² * czas = px/s
+        // --- Ruch faktyczny (pozycja) --- ostatecznie nowa pozycja w swiecie gry po ustaleniach predkosci x i y (grawitacja z lub bez skoku)
+        player.x += player.velocity.x * dt; //do aktualnej pozycji dodajemy  pikseli : predkosc * dt
+        player.y += player.velocity.y * dt;
 
-        // --- Ruch faktyczny (pozycja) ---
-        this.x += this.velocity.x * dt;
-        this.y += this.velocity.y * dt;
+        // Clamp poziomy względem ŚWIATA - ale teraz trzeba sprawdzic czy nei wylazl po za swiat gry
+        if (player.x < 0) player.x = 0;                                     //jak wyszedl z lewej strony to ustawiamy go na x: 0
+        if (player.right > worldWidth) player.x = worldWidth - player.width; // jak wyszedl z prawej to na skaraj swiata
 
-        // Clamp poziomy względem ŚWIATA
-        if (this.x < 0) this.x = 0;
-        if (this.right > worldWidth) this.x = worldWidth - this.width;
-
-        // Sufit = HUD
-        if (this.y < hudHeight) {
-            this.y = hudHeight;
-            this.velocity.y = 0;
+        // Sufit = HUD - sprawdzamy czy gora nie wlazi na gorne okno
+        if (player.y < hudHeight) {
+            player.y = hudHeight;         // jesli wylazi to ustawiamyplayera tuz ponizej. 
+            player.velocity.y = 0;        // zatrzymujemy predkosc pionową
         }
 
         // ❌ Nie rób już clampu do dołu canvasa tutaj
         // Dół obsłużą platformy/ziemia + warunek przegranej w Game (worldHeight)
 
-        this.recalculate();
-        if (!this.onGround) {
-            this.currentAnimation = "jump";
-        }
-        else if (this.velocity.x !== 0) {
-            this.currentAnimation = "walk";
+        player.recalculate();             // po przestawieniu na wszelki wypadek przeliczamy  krańce
 
+        //ustawiamy odpowiednio animacje
+        if (player.animator && player.animator.hasSheet())
+            player.setAnimator(keys, dt);
+    }
+
+    setAnimator(keys, dt) {
+        const player = this;
+        if (!player.onGround) {
+            player.currentAnimation = "jump";
         }
-        else if (keys["ArrowDown"]) {
-            this.currentAnimation = "die";
-            this.velocity.x = 0;
-            // console.log(this.animator.animations[this.current]);
+        else if (player.velocity.x !== 0) {
+            player.currentAnimation = "walk";
         }
-        else {
-            this.currentAnimation = "idle";
+        else if (keys["ArrowDown"]) { //przygotowane do kucania
+            player.currentAnimation = "die";
+            player.velocity.x = 0;
+        }
+        else { //stoi w miejscu
+            player.currentAnimation = "idle";
         }
 
-        if (this.animator.current !== this.currentAnimation) {
-            this.animator.play(this.currentAnimation);
+        if (player.animator.current !== player.currentAnimation) {
+            player.animator.play(player.currentAnimation);
         }
-        // console.log(this.currentAnimation);
-        this.animator.update(dt);
+        player.animator.update(dt);
     }
 
     draw(ctx, camera) {
-        const screenX = this.x - camera.x;
-        console.log("platformer draw -- this.x: ", this.x);
-        const screenY = this.y - camera.y;
+        const player = this;
+        const screenX = player.x - camera.x; //wazne pozycja na ekranie z uwzglednieniem kamery. Nie ruszamy
+        const screenY = player.y - camera.y;
 
-        if (this.animator && this.animator.hasSheet()) {
-            const flip = this.facingLeft;
-            this.animator.draw(ctx, screenX, screenY, flip);
+        if (player.animator && player.animator.hasSheet()) { //jesli player jest animowany 
+            const flip = player.facingLeft; // kierunek ryja
+            player.animator.draw(ctx, screenX, screenY, flip); //rysuje konkretna klatke animacji ustawionej 
         } else {
-            super.draw(ctx, camera);
+            super.draw(ctx, camera); // jesli nie mamy animacji to rusza rusza rysowanie z rodzica (entity)
         }
 
-        // 🔹 Tryb debugowy — cienka ramka wokół sprite’a i hitboxa
-        if (this.debug) {
-            ctx.save();
-            // ramka sprite’a (pełna klatka)
-            ctx.strokeStyle = "rgba(0,255,255,0.8)";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(screenX, screenY, this.width, this.height);
-
-            // ramka hitboxa faktycznego (Entity)
-            const hb = this.getHitbox();
-            ctx.save();
-            ctx.strokeStyle = "rgba(255, 0, 34, 0.8)";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(hb.x - camera.x, hb.y - camera.y, hb.width, hb.height);
-            ctx.restore();
-        }
+        if (player.debug)
+            player.showDebug(ctx, screenX, screenY, camera);
     }
 
+    showDebug(ctx, screenX, screenY, camera) {
+        const player = this;
+        ctx.save();
+        // ramka sprite’a (pełna klatka)
+        ctx.strokeStyle = "rgba(0,255,255,0.8)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(screenX, screenY, player.width, player.height);
+
+        // ramka hitboxa faktycznego (Entity)
+        const hb = player.getHitbox();
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 0, 34, 0.8)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(hb.x - camera.x, hb.y - camera.y, hb.width, hb.height);
+        ctx.restore();
+    }
+
+    /**
+     * Gdy gracz ginie odpowiednie ustawienia 
+     * @param {*} obj - obiekt z ktory zabił 
+     *
+     */
     die(obj) {
-        this.isDead = true;
-        this.deathTimer = 1.5;
-        this.velocity.x = 0;
-        //this.velocity.y = 0;
-        this.onGround = false;
-        this.currentAnimation = "die";
-        this.animator.play("die");
-        this.lives--;
+        const player = this;
+        player.isDead = true;
+        player.deathTimer = 1.5; //czas animacji upadania ??
+        player.velocity.x = 0;
+        player.onGround = false;  //?
+        player.currentAnimation = "die";   //aktualna animacja - animacja smierci
+        player.animator.play("die");      //stawieni animacji
+        player.lives--;                   //utrata kredytu zycia
         console.log("kolizja z przeciwnikiem");
     }
-    resolveCollision(other) {
+
+    /**
+     * Ustalamy jak zderzyl sie player: od gory, dolu czy z ktoregoś boku  
+     * @param {*} object - obiekt z ktorym nastopilo zderzenie 
+     *
+     */
+    resolveCollision(object) {
+        const player = this;
+
         // ile Player wszedł w obiekt
-        const overlapX = Math.min(this.right - other.x, other.right - this.x);
-        const overlapY = Math.min(this.bottom - other.y, other.bottom - this.y);
+        const overlapX = Math.min(player.right - object.x, object.right - player.x);       //czy player jest po prawej stronie obiektu czy po lewej? mniejsza wartosc decyduje
+        const overlapY = Math.min(player.bottom - object.y, object.bottom - player.y);    // czy powyzej czy ponizej
 
         if (overlapX < overlapY) {
             // kolizja pozioma
-            if (this.center.x < other.center.x) {
+            if (player.center.x < object.center.x) {
                 // Player z lewej strony
-                this.x = other.x - this.width;
+                player.x = object.x - player.width;
             } else {
                 // Player z prawej strony
-                this.x = other.right;
+                player.x = object.right;
             }
-            this.velocity.x = 0;
+            player.velocity.x = 0;
         } else {
             // kolizja pionowa
-            if (this.center.y < other.center.y) {
+            if (player.center.y < object.center.y) {
                 // Player uderzył w górną krawędź obiektu
-                this.y = other.y - this.height;
-                this.onGround = true;
+                player.y = object.y - player.height;
+                player.onGround = true;
             } else {
                 // Player uderzył w dolną krawędź obiektu
-                this.y = other.bottom;
+                player.y = object.bottom;
             }
-            this.velocity.y = 0;
+            player.velocity.y = 0;
         }
+        player.recalculate();
+    }
 
-        this.recalculate();
+    /**
+     * Sprawdzamy czy player jest powyzej obiektu wybranego   
+     * @param {*} object - czy powyzej tego obiektu? 
+     *
+     */
+    isAboaveThe(object) {
+        const player = this;
+        if (!object) throw ("Nie ma z czym porównac: (brak Object)");
+        return this.center.top < object.top
+    }
+    isBelowThe(object) {
+        const player = this;
+        if (!object) throw ("Nie ma z czym porównac (brak Object)");
+        return player.bottom > object.bottom
     }
 
 }

@@ -22,8 +22,10 @@ export class Entity {
      * 
      */
     recalculate() {
+        this.left = this.x;
         this.right = this.x + this.width;
         this.bottom = this.y + this.height;
+        this.top = this.y;
         this.center = {
             x: this.x + this.width / 2,
             y: this.y + this.height / 2
@@ -59,7 +61,6 @@ export class Entity {
             // rysuj sprite’a / grafikę
             ctx.drawImage(this.img, drawX, drawY, this.width, this.height);
         } else {
-            // fallback – prostokąt (dla debugowania)
             ctx.fillStyle = "magenta";
             ctx.fillRect(drawX, drawY, this.width, this.height);
         }

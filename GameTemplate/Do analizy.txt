@@ -27,4 +27,14 @@
 6. Dlaczego gameLoop wywołujemy tak w gameLoop i dlaczego tak w 
 loadAssets()
 
+7. O co chodzi z MAX_DT ui dlaczego jest /100 w tym kodzie w petli gameLoop:
+ const deltaTime = timeStamp - this.lastTime;
+        this.lastTime = timeStamp;
+        const MAX_DT = 50;
+        const dt = Math.min(deltaTime, MAX_DT) / 1000;
+		
+Wytłumacz linijke w Animator.js dwa wykrzykniki :
 
+hasSheet() {
+        return !!this.spriteSheet;
+    }

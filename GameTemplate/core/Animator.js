@@ -58,7 +58,7 @@ export class Animator {
     }
 
     /** Aktualizacja indeksu klatki w czasie */
-    update(dt) {
+    update(dt, ctx = null) {
         const anim = this.animations[this.current];
         if (!anim) return;
 
